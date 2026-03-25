@@ -2118,12 +2118,18 @@ class MhdLegacyDatasetBuilder:
                     database_value = data["database"][idx].strip() if data["database"][idx] else ""
                     if database_value:
                         database_values = [database_value]
+                inchi_values = []
+                if maf_file.table.data.get("inchi"):
+                    inchi_value = data["inchi"][idx].strip() if data["inchi"][idx] else ""
+                    if inchi_value:
+                        inchi_values = [inchi_value]
 
                 for identifiers, compound_source in [
                     (submitted_identifiers, ""),
                     (assigned_chebi_identifiers, "CHEBI"),
                     (assigned_refmet_identifiers, "REFMET"),
                     (database_values, "DATABASE"),
+                    (inchi_values, "INCHI"),
                 ]:
                     if not identifiers:
                         continue
@@ -2162,6 +2168,14 @@ class MhdLegacyDatasetBuilder:
                                 source="CHEMINF",
                                 accession="CHEMINF:000464",
                                 name="chemical database identifier",
+                                value=identifier_value,
+                            )
+                        elif compound_source == "INCHI":
+                            identifier = create_cv_term_value_object(
+                                type_="metabolite-identifier",
+                                source="CHEMINF",
+                                accession="CHEMINF:000113",
+                                name="InChI descriptor",
                                 value=identifier_value,
                             )
                         else:
