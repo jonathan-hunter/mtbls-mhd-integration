@@ -2092,109 +2092,34 @@ class MhdLegacyDatasetBuilder:
                     continue
                 met = mhd_domain.Metabolite(name=name)
                 data: dict[str, str] = maf_file.table.data
-                submitted_identifiers = []
-                assigned_chebi_identifiers = []
-                assigned_refmet_identifiers = []
-                database_values = []
-                if maf_file.table.data.get("database_identifier"):
-                    submitted_identifiers = [
-                        x.strip()
-                        for x in data["database_identifier"][idx].split("|")
-                        if x
-                    ]
-                if maf_file.table.data.get("assigned_chebi_identifier"):
-                    assigned_chebi_identifiers = [
-                        x.strip()
-                        for x in data["assigned_chebi_identifier"][idx].split("|")
-                        if x
-                    ]
-                if maf_file.table.data.get("assigned_refmet_identifier"):
-                    assigned_refmet_identifiers = [
-                        x.strip()
-                        for x in data["assigned_refmet_identifier"][idx].split("|")
-                        if x
-                    ]
-                if maf_file.table.data.get("database"):
-                    database_value = data["database"][idx].strip() if data["database"][idx] else ""
-                    if database_value:
-                        database_values = [database_value]
-                inchi_values = []
-                if maf_file.table.data.get("inchi"):
-                    inchi_value = data["inchi"][idx].strip() if data["inchi"][idx] else ""
-                    if inchi_value:
-                        inchi_values = [inchi_value]
 
-                for identifiers, compound_source in [
-                    (submitted_identifiers, ""),
-                    (assigned_chebi_identifiers, "CHEBI"),
-                    (assigned_refmet_identifiers, "REFMET"),
-                    (database_values, "DATABASE"),
-                    (inchi_values, "INCHI"),
-                ]:
-                    if not identifiers:
+                maf_identifier_columns = [
+                    ("database_identifier", "database identifier"),
+                    ("database", "database"),
+                    ("inchi", "InChI descriptor"),
+                ]
+                for column_name, identifier_name in maf_identifier_columns:
+                    if not maf_file.table.data.get(column_name):
                         continue
-                    for identifier_value in identifiers:
-                        identifier = None
-                        if (
-                            compound_source == "CHEBI"
-                            or identifier_value.upper().startswith("CHEBI")
-                        ):
-                            identifier = create_cv_term_value_object(
-                                type_="metabolite-identifier",
-                                source="CHEMINF",
-                                accession="CHEMINF:000407",
-                                name="ChEBI identifier",
-                                value=identifier_value,
-                            )
-                        elif identifier_value.upper().startswith("HMDB"):
-                            identifier = create_cv_term_value_object(
-                                type_="metabolite-identifier",
-                                source="CHEMINF",
-                                accession="CHEMINF:000408",
-                                name="HMDB identifier",
-                                value=identifier_value,
-                            )
-                        elif compound_source == "REFMET":
-                            identifier = create_cv_term_value_object(
-                                type_="metabolite-identifier",
-                                source="REFMET",
-                                accession="",
-                                name="RefMet identifier",
-                                value=identifier_value,
-                            )
-                        elif compound_source == "DATABASE":
-                            identifier = create_cv_term_value_object(
-                                type_="metabolite-identifier",
-                                source="CHEMINF",
-                                accession="CHEMINF:000464",
-                                name="chemical database identifier",
-                                value=identifier_value,
-                            )
-                        elif compound_source == "INCHI":
-                            identifier = create_cv_term_value_object(
-                                type_="metabolite-identifier",
-                                source="CHEMINF",
-                                accession="CHEMINF:000113",
-                                name="InChI descriptor",
-                                value=identifier_value,
-                            )
-                        else:
-                            identifier = create_cv_term_value_object(
-                                type_="metabolite-identifier",
-                                source="CHEMINF",
-                                accession="CHEMINF:000464",
-                                name="chemical database identifier",
-                                value=identifier_value,
-                            )
-
-                        if identifier:
-                            mhd_builder.add(identifier)
-                            mhd_builder.link(
-                                met,
-                                "identified-as",
-                                identifier,
-                                reverse_relationship_name="reported-identifier-of",
-                            )
+                    raw_value = data[column_name][idx]
+                    if not raw_value or not raw_value.strip():
+                        continue
+                    values = [x.strip() for x in raw_value.split("|") if x.strip()]
+                    for identifier_value in values:
+                        identifier = create_cv_term_value_object(
+                            type_="metabolite-identifier",
+                            source="",
+                            accession="",
+                            name=identifier_name,
+                            value=identifier_value,
+                        )
+                        mhd_builder.add(identifier)
+                        mhd_builder.link(
+                            met,
+                            "identified-as",
+                            identifier,
+                            reverse_relationship_name="reported-identifier-of",
+                        )
                 mhd_builder.add(met)
                 if result_file:
                     mhd_builder.link(
